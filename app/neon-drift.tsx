@@ -123,6 +123,7 @@ function GameCanvas({
     let shards = 0;
     let drift = 0;
     let transformation = 0;
+    let transformMode: Entity["pattern"] = "rotate";
     let district = 0;
     let spawnAt = 210;
     let entityId = 1;
@@ -177,6 +178,10 @@ function GameCanvas({
         slide = GAME.slideDuration;
         promptTimer = 0;
       } else if (action === "drift" && energy >= GAME.driftCost && drift <= 0) {
+        const upcomingGate = entities
+          .filter((entity) => entity.kind === "gate" && entity.distance > -GAME.collisionWindow)
+          .sort((a, b) => a.distance - b.distance)[0];
+        transformMode = upcomingGate?.pattern ?? "rotate";
         energy -= GAME.driftCost;
         drift = GAME.driftDuration;
         transformation = 1;
@@ -324,6 +329,7 @@ function GameCanvas({
             score += 250 * multiplier;
             energy = Math.min(100, energy + 16);
             transformation = 1.35;
+            transformMode = entity.pattern;
             district = (district + (entity.pattern === "portal" ? 1 : 0)) % 3;
             prompt = entity.pattern === "rotate" ? "ROAD ROTATED" : entity.pattern === "shift" ? "PATH ALIGNED" : "DISTRICT SHIFT";
             promptTimer = 1.4;
@@ -391,8 +397,9 @@ function GameCanvas({
       }
 
       ctx.save();
-      const bend = transformation > 0 ? Math.sin((1 - transformation) * Math.PI) * 52 : 0;
-      const tilt = transformation > 0 ? Math.sin((1 - transformation) * Math.PI) * 0.055 : 0;
+      const transformWave = transformation > 0 ? Math.sin(Math.max(0, (1 - transformation) * Math.PI)) : 0;
+      const bend = transformMode === "rotate" ? transformWave * 68 : 0;
+      const tilt = transformMode === "rotate" ? transformWave * 0.18 : 0;
       ctx.translate(bend, 0);
       ctx.rotate(tilt);
 
@@ -433,6 +440,22 @@ function GameCanvas({
         ctx.stroke();
         ctx.setLineDash([]);
       });
+
+      if (transformMode === "shift" && transformation > 0) {
+        const alignment = 1 - Math.min(1, transformation);
+        for (let platform = 0; platform < 3; platform++) {
+          const py = 340 + platform * 116;
+          const offset = (platform % 2 === 0 ? -1 : 1) * (58 * (1 - alignment));
+          ctx.shadowBlur = 18;
+          ctx.shadowColor = GAME.palette.magenta;
+          ctx.strokeStyle = GAME.palette.magenta;
+          ctx.lineWidth = 3;
+          ctx.strokeRect(GAME.width / 2 - 76 + offset, py, 152, 54);
+          ctx.fillStyle = `${GAME.palette.violet}22`;
+          ctx.fillRect(GAME.width / 2 - 76 + offset, py, 152, 54);
+        }
+        ctx.shadowBlur = 0;
+      }
 
       const sorted = [...entities].sort((a, b) => b.distance - a.distance);
       for (const entity of sorted) {
