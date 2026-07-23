@@ -1,3 +1,4 @@
+/opt/homebrew/Library/Homebrew/cmd/shellenv.sh: line 18: /bin/ps: Operation not permitted
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -115,7 +116,7 @@ function GameCanvas({
     let jumpY = 0;
     let jumpV = 0;
     let slide = 0;
-    let speed = GAME.startSpeed;
+    let speed: number = GAME.startSpeed;
     let distance = 0;
     let score = 0;
     let multiplier = 1;
